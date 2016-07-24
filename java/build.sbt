@@ -12,3 +12,5 @@ libraryDependencies ++= Seq("com.aerospike" % "aerospike-client" % "3.2.4",
 	
 crossPaths := false
 autoScalaLibrary := false
+
+publishTo := Some(Resolver.file("file",  new File(Path.userHome.absolutePath+"/.m2/repository")))
