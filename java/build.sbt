@@ -1,5 +1,5 @@
 name := "aerospike-helper-java"
-version := "1.0.5"
+version := "1.0.6"
 organization := "com.aerospike"
 
 javacOptions in (Compile, compile) ++= Seq("-source", "1.7", "-target", "1.7", "-g:lines")
