@@ -7,7 +7,7 @@ public class ClusterRefreshError extends RuntimeException {
 	}
 
 	/**
-	 * 
+	 *
 	 */
 	private static final long serialVersionUID = 5427910524144216666L;
 
