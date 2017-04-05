@@ -16,15 +16,19 @@
 package com.aerospike.helper.query;
 
 import com.aerospike.client.Value;
+
 /**
  * Qualifier used to query by expiry epoch
- * @author peter
  *
+ * @author peter
  */
 public class ExpiryQualifier extends Qualifier {
+	private static final long serialVersionUID = 13172814137477042L;
+
 	public ExpiryQualifier(FilterOperation op, Value value) {
 		super(QueryEngine.Meta.EXPIRATION.toString(), op, value);
 	}
+
 	@Override
 	protected String luaFieldString(String field) {
 		return "expiry";

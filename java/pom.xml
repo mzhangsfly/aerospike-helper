@@ -9,6 +9,15 @@
 		<name>Aerospike Inc.</name>
 		<url>http://www.aerospike.com</url>
 	</organization>
+	<description>Helper classes including predicates for Spring Data and Spark</description>
+	<url>http://github.com/aerospike/aerospike-helper</url>
+
+  <licenses>
+    <license>
+      <name>The Apache License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+    </license>
+  </licenses>
 
 	<developers>
 		<developer>
@@ -47,17 +56,48 @@
 			</roles>
 			<timezone>-6</timezone>
 		</developer>
+		<developer>
+			<id>Michael Zhang</id>
+			<name>Michael Zhang</name>
+			<email>mzhang@aerospike.com</email>
+			<url>http://www.aerospike.com</url>
+			<organization>Aerospike Inc.</organization>
+			<organizationUrl>http://www.aerospike.com</organizationUrl>
+			<roles>
+				<role>developer</role>
+			</roles>
+			<timezone>-8</timezone>
+		</developer>
+		<developer>
+			<id>Jeff Boone</id>
+			<name>Jeff Boone</name>
+			<email>jboone@aerospike.com</email>
+			<url>http://www.aerospike.com</url>
+			<organization>Aerospike Inc.</organization>
+			<organizationUrl>http://www.aerospike.com</organizationUrl>
+			<roles>
+				<role>developer</role>
+			</roles>
+			<timezone>-8</timezone>
+		</developer>
 	</developers>
-	<distributionManagement>
-		<snapshotRepository>
-			<id>ossrh</id>
-			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
-		</snapshotRepository>
-		<repository>
-			<id>ossrh</id>
-			<url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-		</repository>
-	</distributionManagement>
+
+  <scm>
+    <connection>scm:git:git://github.com/aerospike/aerospike-helper.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com:aerospike/aerospike-helper.git</developerConnection>
+    <url>https://github.com/aerospike/aerospike-helper</url>
+  </scm>
+
+  <distributionManagement>
+    <snapshotRepository>
+      <id>ossrh</id>
+      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+    </snapshotRepository>
+    <repository>
+      <id>ossrh</id>
+      <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+    </repository>
+  </distributionManagement>
 
 	<dependencies>
 		<!-- Aerospike client. -->
@@ -97,7 +137,7 @@
 
 	</dependencies>
 	<build>
-		<sourceDirectory>${project.basedir}/src/main/java</sourceDirectory>
+		<sourceDirectory>${project.basedir}/src/main/java</sourceDirectory> 
 		<plugins>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -145,6 +185,48 @@
 					</sourceFileIncludes>
 				</configuration>
 			</plugin>
+
+	        <plugin>
+	          <groupId>org.apache.maven.plugins</groupId>
+	          <artifactId>maven-source-plugin</artifactId>
+	          <version>2.2.1</version>
+	          <executions>
+	            <execution>
+	              <id>attach-sources</id>
+	              <goals>
+	                <goal>jar-no-fork</goal>
+	              </goals>
+	            </execution>
+	          </executions>
+	        </plugin>
+
+	        <plugin>
+	          <groupId>org.apache.maven.plugins</groupId>
+	          <artifactId>maven-javadoc-plugin</artifactId>
+	          <version>2.9.1</version>
+	          <executions>
+	            <execution>
+	              <id>attach-javadocs</id>
+	              <goals>
+	                <goal>jar</goal>
+	              </goals>
+	            </execution>
+	          </executions>
+	        </plugin>
+			<plugin>
+	          <groupId>org.apache.maven.plugins</groupId>
+	          <artifactId>maven-gpg-plugin</artifactId>
+	          <version>1.5</version>
+	          <executions>
+	            <execution>
+	              <id>sign-artifacts</id>
+	              <phase>verify</phase>
+	              <goals>
+	                <goal>sign</goal>
+	              </goals>
+	            </execution>
+	          </executions>
+	        </plugin>
 		</plugins>
 		<resources>
 			<resource>

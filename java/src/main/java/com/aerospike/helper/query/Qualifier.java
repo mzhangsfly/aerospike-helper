@@ -1,4 +1,4 @@
-/* Copyright 2012-2015 Aerospike, Inc.
+/* Copyright 2012-2017 Aerospike, Inc.
  *
  * Portions may be licensed to Aerospike, Inc. under one or more contributor
  * license agreements.
@@ -44,7 +44,10 @@ import com.aerospike.client.Value;
 import com.aerospike.client.command.ParticleType;
 import com.aerospike.client.query.Filter;
 import com.aerospike.client.query.IndexCollectionType;
+<<<<<<< HEAD
 import com.aerospike.client.query.PredExp;
+=======
+>>>>>>> origin/master
 
 /**
  * Generic Bin qualifier. It acts as a filter to exclude records that do not met this criteria.
@@ -60,23 +63,29 @@ import com.aerospike.client.query.PredExp;
  * <li>START_WITH - A string that starts with</li>
  * <li>ENDS_WITH - A string that ends with</li>
  * </ul><p>
- * @author Peter Milne
  *
+ * @author Peter Milne
  */
-public class Qualifier implements Map<String, Object>, Serializable{
+public class Qualifier implements Map<String, Object>, Serializable {
 	private static final long serialVersionUID = -2689196529952712849L;
 	private static final String FIELD = "field";
+	private static final String IGNORE_CASE = "ignoreCase";
 	private static final String VALUE2 = "value2";
 	private static final String VALUE1 = "value1";
 	private static final String IGNORE_CASE = "ignoreCase";
 	private static final String QUALIFIERS = "qualifiers";
 	private static final String OPERATION = "operation";
 	protected Map<String, Object> internalMap;
+
 	public enum FilterOperation {
 		EQ, GT, GTEQ, LT, LTEQ, NOTEQ, BETWEEN, START_WITH, ENDS_WITH, CONTAINING,
 		LIST_CONTAINS, MAP_KEYS_CONTAINS, MAP_VALUES_CONTAINS,
+<<<<<<< HEAD
 		LIST_BETWEEN, MAP_KEYS_BETWEEN, MAP_VALUES_BETWEEN, GEO_WITHIN,
 		OR, AND
+=======
+		LIST_BETWEEN, MAP_KEYS_BETWEEN, MAP_VALUES_BETWEEN, GEO_WITHIN
+>>>>>>> origin/master
 	}
 
 	public Qualifier() {
@@ -84,11 +93,14 @@ public class Qualifier implements Map<String, Object>, Serializable{
 		internalMap = new HashMap<String, Object>();
 	}
 
+<<<<<<< HEAD
 	public Qualifier(FilterOperation operation, Qualifier... qualifiers) {
 		this();
 		internalMap.put(QUALIFIERS, qualifiers);
 		internalMap.put(OPERATION, operation);
 	}
+=======
+>>>>>>> origin/master
 	public Qualifier(String field, FilterOperation operation, Value value1) {
 		this(field, operation, Boolean.FALSE, value1);
 	}
@@ -106,25 +118,39 @@ public class Qualifier implements Map<String, Object>, Serializable{
 		internalMap.put(VALUE2, value2);
 	}
 
+<<<<<<< HEAD
 	public FilterOperation getOperation(){
+=======
+
+	public FilterOperation getOperation() {
+>>>>>>> origin/master
 		return (FilterOperation) internalMap.get(OPERATION);
 	}
-	public String getField(){
+
+	public String getField() {
 		return (String) internalMap.get(FIELD);
 	}
 
+<<<<<<< HEAD
 	public Qualifier[] getQualifiers() {
 		return (Qualifier[]) internalMap.get(QUALIFIERS);
 	}
 
+=======
+>>>>>>> origin/master
 	public Value getValue1() {
 		return (Value) internalMap.get(VALUE1);
 	}
-	public Value getValue2(){
+
+	public Value getValue2() {
 		return (Value) internalMap.get(VALUE2);
 	}
 
+<<<<<<< HEAD
 	public Filter asFilter(){
+=======
+	public Filter asFilter() {
+>>>>>>> origin/master
 		FilterOperation op = getOperation();
 		switch (op) {
 			case EQ:
@@ -137,10 +163,13 @@ public class Qualifier implements Map<String, Object>, Serializable{
 				return Filter.range(getField(), getValue1().toLong(), getValue2()==null?Long.MAX_VALUE:getValue2().toLong());
 			case GT:
 				return Filter.range(getField(), getValue1().toLong()+1, getValue2()==null?Long.MAX_VALUE:getValue2().toLong());
+<<<<<<< HEAD
 			case LT:
 				return Filter.range(getField(), Long.MIN_VALUE, getValue1().toLong()-1);
 			case LTEQ:
 				return Filter.range(getField(),  Long.MIN_VALUE, getValue1().toLong()+1);
+=======
+>>>>>>> origin/master
 			case LIST_CONTAINS:
 				return collectionContains(IndexCollectionType.LIST);
 			case MAP_KEYS_CONTAINS:
@@ -159,25 +188,36 @@ public class Qualifier implements Map<String, Object>, Serializable{
 				return null;
 		}
 	}
+<<<<<<< HEAD
 	
 	private Filter geoWithinRadius(IndexCollectionType collectionType) {
 		return  Filter.geoContains(getField(), getValue1().toString());
 	}
 	
 	private Filter collectionContains(IndexCollectionType collectionType){
+=======
+
+	private Filter geoWithinRadius(IndexCollectionType collectionType) {
+		return  Filter.geoContains(getField(), getValue1().toString());
+	}
+
+	private Filter collectionContains(IndexCollectionType collectionType) {
+>>>>>>> origin/master
 		Value val = getValue1();
 		int valType = val.getType();
-		switch (valType){
-		case ParticleType.INTEGER:
-			return Filter.contains(getField(), collectionType, val.toLong());
-		case ParticleType.STRING:
-			return Filter.contains(getField(), collectionType, val.toString());
+		switch (valType) {
+			case ParticleType.INTEGER:
+				return Filter.contains(getField(), collectionType, val.toLong());
+			case ParticleType.STRING:
+				return Filter.contains(getField(), collectionType, val.toString());
 		}
 		return null;
 	}
-	private Filter collectionRange(IndexCollectionType collectionType){
+
+	private Filter collectionRange(IndexCollectionType collectionType) {
 		return Filter.range(getField(), collectionType, getValue1().toLong(), getValue2().toLong());
 	}
+<<<<<<< HEAD
 	
 	public List<PredExp> toPredExp() throws PredExpException{
 		List<PredExp> rs = new ArrayList<PredExp>();
@@ -277,6 +317,13 @@ public class Qualifier implements Map<String, Object>, Serializable{
 						.append("(")
 						.append(Arrays.asList((Qualifier[])get(QUALIFIERS)).stream().map(Qualifier::luaFilterString).collect(Collectors.joining(" or ")))
 						.append(")").toString();
+=======
+
+	public String luaFilterString() {
+		String value1 = luaValueString(getValue1());
+		FilterOperation op = getOperation();
+		switch (op) {
+>>>>>>> origin/master
 			case EQ:
 				return String.format("%s == %s", luaFieldString(getField()), value1);
 			case LIST_CONTAINS:
@@ -326,40 +373,45 @@ public class Qualifier implements Map<String, Object>, Serializable{
 					return String.format("string.find(%s, %s)", luaFieldString(getField()), value1);
 			case GEO_WITHIN:
 				return String.format("%s %d %s %s)", getField(), ParticleType.GEOJSON, value1, value1);
+<<<<<<< HEAD
 			default:
 				break;
+=======
+>>>>>>> origin/master
 		}
 		return "";
 	}
 
-	protected String luaFieldString(String field){
+	protected String luaFieldString(String field) {
 		return String.format("rec['%s']", field);
 	}
 
-	protected String luaValueString(Value value){
+	protected String luaValueString(Value value) {
 		String res = null;
 		if(null == value) return res;
 		int type = value.getType();
 		switch (type) {
-		//		case ParticleType.LIST:
-		//			res = value.toString();
-		//			break;
-		//		case ParticleType.MAP:
-		//			res = value.toString();
-		//			break;
-		//		case ParticleType.DOUBLE:
-		//			res = value.toString();
-		//			break;
+			//		case ParticleType.LIST:
+			//			res = value.toString();
+			//			break;
+			//		case ParticleType.MAP:
+			//			res = value.toString();
+			//			break;
+			//		case ParticleType.DOUBLE:
+			//			res = value.toString();
+			//			break;
 		case ParticleType.STRING:
 			res = String.format("'%s'", value.toString());
 			break;
-		default:
-			res = value.toString();
+		case ParticleType.GEOJSON:
+			res = String.format("'%s'", value.toString());
 			break;
+		default:
+				res = value.toString();
+				break;
 		}
 		return res;
 	}
-
 
 
 	/*
@@ -370,6 +422,7 @@ public class Qualifier implements Map<String, Object>, Serializable{
 	public int size() {
 		return internalMap.size();
 	}
+
 	/*
 	 * (non-Javadoc)
 	 * @see java.util.Map#isEmpty()
@@ -378,6 +431,7 @@ public class Qualifier implements Map<String, Object>, Serializable{
 	public boolean isEmpty() {
 		return internalMap.isEmpty();
 	}
+
 	/*
 	 * (non-Javadoc)
 	 * @see java.util.Map#containsKey(java.lang.Object)
@@ -386,6 +440,7 @@ public class Qualifier implements Map<String, Object>, Serializable{
 	public boolean containsKey(java.lang.Object key) {
 		return internalMap.containsKey(key);
 	}
+
 	/*
 	 * (non-Javadoc)
 	 * @see java.util.Map#containsValue(java.lang.Object)
@@ -394,6 +449,7 @@ public class Qualifier implements Map<String, Object>, Serializable{
 	public boolean containsValue(java.lang.Object value) {
 		return internalMap.containsValue(value);
 	}
+
 	/*
 	 * (non-Javadoc)
 	 * @see java.util.Map#get(java.lang.Object)
@@ -402,6 +458,7 @@ public class Qualifier implements Map<String, Object>, Serializable{
 	public Object get(java.lang.Object key) {
 		return internalMap.get(key);
 	}
+
 	/*
 	 * (non-Javadoc)
 	 * @see java.util.Map#put(java.lang.Object, java.lang.Object)
@@ -410,6 +467,7 @@ public class Qualifier implements Map<String, Object>, Serializable{
 	public Object put(String key, Object value) {
 		return internalMap.put(key, value);
 	}
+
 	/*
 	 * (non-Javadoc)
 	 * @see java.util.Map#remove(java.lang.Object)
@@ -418,6 +476,7 @@ public class Qualifier implements Map<String, Object>, Serializable{
 	public Object remove(java.lang.Object key) {
 		return internalMap.remove(key);
 	}
+
 	/*
 	 * (non-Javadoc)
 	 * @see java.util.Map#putAll(java.util.Map)
@@ -426,6 +485,7 @@ public class Qualifier implements Map<String, Object>, Serializable{
 	public void putAll(Map<? extends String, ? extends Object> m) {
 		internalMap.putAll(m);
 	}
+
 	/*
 	 * (non-Javadoc)
 	 * @see java.util.Map#clear()
@@ -434,6 +494,7 @@ public class Qualifier implements Map<String, Object>, Serializable{
 	public void clear() {
 		internalMap.clear();
 	}
+
 	/*
 	 * (non-Javadoc)
 	 * @see java.util.Map#keySet()
@@ -442,6 +503,7 @@ public class Qualifier implements Map<String, Object>, Serializable{
 	public Set<String> keySet() {
 		return internalMap.keySet();
 	}
+
 	/*
 	 * (non-Javadoc)
 	 * @see java.util.Map#values()
@@ -450,6 +512,7 @@ public class Qualifier implements Map<String, Object>, Serializable{
 	public Collection<Object> values() {
 		return internalMap.values();
 	}
+
 	/*
 	 * (non-Javadoc)
 	 * @see java.util.Map#entrySet()
@@ -461,7 +524,7 @@ public class Qualifier implements Map<String, Object>, Serializable{
 
 	@Override
 	public String toString() {
-		String output = String.format("%s:%s:%s:%s",getField(), getOperation(), getValue1(), getValue2());
+		String output = String.format("%s:%s:%s:%s", getField(), getOperation(), getValue1(), getValue2());
 		return output;
 	}
 }
