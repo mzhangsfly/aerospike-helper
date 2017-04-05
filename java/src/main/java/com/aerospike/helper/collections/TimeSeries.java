@@ -107,17 +107,10 @@ public class TimeSeries {
 	public Value find(long timeStamp) {
 		Key subKey = formSubrecordKey(timeStamp);
 		Record record = this.client.get(this.policy, subKey);
-<<<<<<< HEAD
 		if (record != null){
 			List<Map<?,?>> values = (List<Map<?,?>>) record.getList(valueBin);
 			for (Map<?,?> value : values){
-				// do something clever here
-=======
-		if (record != null) {
-			List<Value> values = (List<Value>) record.getList(valueBin);
-			for (Value value : values) {
-				// TODO do something clever here
->>>>>>> origin/master
+				if((Long)value.get("TimeStamp") == timeStamp) return Value.get(value.get("Value"));
 			}
 		}
 		return null;

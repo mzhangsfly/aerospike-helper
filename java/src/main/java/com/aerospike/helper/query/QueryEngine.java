@@ -49,7 +49,6 @@ import com.aerospike.client.task.RegisterTask;
 import com.aerospike.helper.model.Index;
 import com.aerospike.helper.model.Module;
 import com.aerospike.helper.model.Namespace;
-import com.aerospike.helper.query.Qualifier.FilterOperation;
 
 /**
  * This class provides a multi-filter query engine that
@@ -220,10 +219,7 @@ public class QueryEngine implements Closeable {
 	 * @return A KeyRecordIterator to iterate over the results
 	 */
 	public KeyRecordIterator select(Statement stmt, boolean metaOnly, Node node, Qualifier... qualifiers) {
-<<<<<<< HEAD
-=======
-		KeyRecordIterator results = null;
->>>>>>> origin/master
+
 		/*
 		 * no filters
 		 */
@@ -247,11 +243,7 @@ public class QueryEngine implements Closeable {
 			else
 				record = this.client.get(null, key, stmt.getBinNames());
 			if (record == null) {
-<<<<<<< HEAD
 				return new KeyRecordIterator(stmt.getNamespace());
-=======
-				results = new KeyRecordIterator(stmt.getNamespace());
->>>>>>> origin/master
 			} else {
 				KeyRecord keyRecord = new KeyRecord(key, record);
 				return new KeyRecordIterator(stmt.getNamespace(), keyRecord);
@@ -300,30 +292,17 @@ public class QueryEngine implements Closeable {
 			stmt.setAggregateFunction(this.getClass().getClassLoader(), AS_UTILITY_PATH, QUERY_MODULE, "query_meta", Value.get(originArgs));
 		else
 			stmt.setAggregateFunction(this.getClass().getClassLoader(), AS_UTILITY_PATH, QUERY_MODULE, "select_records", Value.get(originArgs));
-<<<<<<< HEAD
-=======
-		ResultSet resultSet = null;
-
->>>>>>> origin/master
 		if (node != null) {
 			resultSet = this.client.queryAggregateNode(null, stmt, node);
 		} else {
 			resultSet = this.client.queryAggregate(null, stmt);
 		}
-<<<<<<< HEAD
 		return new KeyRecordIterator(stmt.getNamespace(), resultSet);
 
 	}
 
 	protected boolean isIndexedBin(Qualifier qualifier) {
 		if(null == qualifier.getField()) return false;
-=======
-		results = new KeyRecordIterator(stmt.getNamespace(), resultSet);
-		return results;
-	}
-
-	protected boolean isIndexedBin(Qualifier qualifier) {
->>>>>>> origin/master
 		Index index = this.indexCache.get(qualifier.getField());
 		if (index == null)
 			return false;
