@@ -17,6 +17,7 @@ package com.aerospike.helper.query;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -40,6 +41,7 @@ import com.aerospike.client.policy.RecordExistsAction;
 import com.aerospike.client.policy.WritePolicy;
 import com.aerospike.client.query.Filter;
 import com.aerospike.client.query.KeyRecord;
+import com.aerospike.client.query.PredExp;
 import com.aerospike.client.query.RecordSet;
 import com.aerospike.client.query.ResultSet;
 import com.aerospike.client.query.Statement;
@@ -49,6 +51,7 @@ import com.aerospike.helper.model.Index;
 import com.aerospike.helper.model.Module;
 import com.aerospike.helper.model.Namespace;
 import com.aerospike.helper.query.Qualifier.FilterOperation;
+
 /**
  * This class provides a multi-filter query engine that
  * augments the query capability in Aerospike.
@@ -212,8 +215,7 @@ public class QueryEngine implements Closeable{
 	 * @param qualifiers Zero or more Qualifiers for the update query
 	 * @return A KeyRecordIterator to iterate over the results
 	 */
-	public KeyRecordIterator select(Statement stmt, boolean metaOnly, Node node, Qualifier... qualifiers){
-		KeyRecordIterator results = null;
+	public KeyRecordIterator select(Statement stmt, boolean metaOnly, Node node, Qualifier... qualifiers) {
 		/*
 		 * no filters
 		 */
@@ -223,8 +225,7 @@ public class QueryEngine implements Closeable{
 				recordSet = this.client.queryNode(null, stmt, node);
 			else
 				recordSet = this.client.query(null, stmt);
-			results = new KeyRecordIterator(stmt.getNamespace(), recordSet);
-			return results;
+			return new KeyRecordIterator(stmt.getNamespace(), recordSet);
 		}
 		/*
 		 * singleton using primary key
@@ -238,19 +239,16 @@ public class QueryEngine implements Closeable{
 				record = this.client.getHeader(null, key);
 			else
 				record = this.client.get(null, key, stmt.getBinNames());
-			if (record == null){
-				results = new KeyRecordIterator(stmt.getNamespace());
+			if (record == null) {
+				return new KeyRecordIterator(stmt.getNamespace());
 			} else {
 				KeyRecord keyRecord = new KeyRecord(key, record);
-				results = new KeyRecordIterator(stmt.getNamespace(), keyRecord);
+				return new KeyRecordIterator(stmt.getNamespace(), keyRecord);
 			}
-			return results;
 		}
 		/*
 		 *  query with filters
 		 */
-		Map<String, Object> originArgs = new HashMap<String, Object>();
-		originArgs.put("includeAllFields", 1);
 
 		for (int i = 0; i < qualifiers.length; i++){
 			Qualifier qualifier = qualifiers[i];
@@ -263,6 +261,26 @@ public class QueryEngine implements Closeable{
 				}
 			}
 		}
+		
+		try {
+			PredExp[] predexps;
+			predexps = (PredExp[]) buildPredExp(qualifiers).toArray(new PredExp[0]);
+			if(predexps.length > 0){
+				stmt.setPredExp(predexps);
+				RecordSet rs = client.query(null, stmt);
+				return new KeyRecordIterator(stmt.getNamespace(), rs);
+			}else{
+				return queryByLua(stmt, metaOnly, node, qualifiers);
+			}
+		} catch (PredExpException e) {
+			return queryByLua(stmt, metaOnly, node, qualifiers);
+		}
+	}
+	
+	private KeyRecordIterator queryByLua(Statement stmt, Boolean metaOnly, Node node, Qualifier[] qualifiers){
+		Map<String, Object> originArgs = new HashMap<String, Object>();
+		originArgs.put("includeAllFields", 1);
+		ResultSet resultSet = null;
 
 		String filterFuncStr = buildFilterFunction(qualifiers);
 		originArgs.put("filterFuncStr", filterFuncStr);
@@ -271,27 +289,27 @@ public class QueryEngine implements Closeable{
 			stmt.setAggregateFunction(this.getClass().getClassLoader(), AS_UTILITY_PATH, QUERY_MODULE, "query_meta", Value.get(originArgs));
 		else
 			stmt.setAggregateFunction(this.getClass().getClassLoader(), AS_UTILITY_PATH, QUERY_MODULE, "select_records", Value.get(originArgs));
-		ResultSet resultSet = null;
-		
 		if (node != null) {
 			resultSet = this.client.queryAggregateNode(null, stmt, node);
 		} else {
 			resultSet = this.client.queryAggregate(null, stmt);
 		}
-	results = new KeyRecordIterator(stmt.getNamespace(), resultSet);
-		return results;
+		return new KeyRecordIterator(stmt.getNamespace(), resultSet);
+
 	}
 
-	protected boolean isIndexedBin(Qualifier qualifier){
+	protected boolean isIndexedBin(Qualifier qualifier) {
+		if(null == qualifier.getField()) return false;
 		Index index = this.indexCache.get(qualifier.getField());
 		if (index == null)
 			return false;
 
-		FilterOperation operation = qualifier.getOperation();
-		if (operation != FilterOperation.EQ && operation != FilterOperation.BETWEEN)
-			return false;
-
-		return true;
+		switch (qualifier.getOperation()){
+			case EQ: case BETWEEN: case GT: case GTEQ: case LT: case LTEQ: 
+				return true;
+			default:
+				return false;
+		}
 	}
 
 	/*
@@ -460,6 +478,24 @@ public class QueryEngine implements Closeable{
 	private String buildSortFunction(Map<String, String> sortMap) {
 		// TODO Auto-generated method stub
 		return null;
+	}
+	
+	private List<PredExp> buildPredExp(Qualifier[] qualifiers) throws PredExpException{
+		List<PredExp> pes = new ArrayList<PredExp>();
+		int qCount = 0;
+		for(Qualifier q : qualifiers){
+			if(null != q) {
+				List<PredExp> tpes = q.toPredExp();
+				if(tpes.size()>0){
+					pes.addAll(tpes);
+					qCount ++;
+					q = null;
+				}
+			}
+		}
+		
+		if(qCount>1) pes.add(PredExp.and(qCount));
+		return pes;
 	}
 
 

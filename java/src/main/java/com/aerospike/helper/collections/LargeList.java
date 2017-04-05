@@ -45,6 +45,7 @@ import com.aerospike.client.policy.WritePolicy;
  * @author Peter Milne
  *
  */
+@Deprecated
 public class LargeList {
 	public static final String ListElementBinName = "__ListElement";
 

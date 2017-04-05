@@ -72,7 +72,7 @@ public class Index {
 			values = new HashMap<String, String>();
 		}
 		String[] kvParts = kv.split("=");
-		this.values.put(kvParts[0], kvParts[1]);
+		this.values.put(kvParts[0], kvParts.length == 1 ? null : kvParts[1]);
 	}
 
 	@Override

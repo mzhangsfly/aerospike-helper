@@ -74,7 +74,6 @@ public class SelectorTests extends HelperTests{
 			while (it.hasNext()){
 				KeyRecord rec = it.next();
 				Assert.assertTrue(rec.record.getString("color").endsWith("e"));
-
 			}
 		} finally {
 			it.close();
@@ -132,6 +131,55 @@ public class SelectorTests extends HelperTests{
 			it.close();
 		}
 	}
+
+	@Test
+	public void selectWithOrQualifiers() throws IOException {
+		IndexTask task = this.client.createIndex(null, TestQueryEngine.NAMESPACE, TestQueryEngine.SET_NAME, "age_index", "age", IndexType.NUMERIC);
+		task.waitTillComplete(50);
+		queryEngine.refreshCluster();
+		Qualifier qual1 = new Qualifier("color", Qualifier.FilterOperation.EQ, Value.get("green"));
+		Qualifier qual2 = new Qualifier("age", Qualifier.FilterOperation.BETWEEN, Value.get(28), Value.get(29));
+		Qualifier or = new Qualifier(Qualifier.FilterOperation.OR, qual1, qual2);
+		KeyRecordIterator it = queryEngine.select(TestQueryEngine.NAMESPACE, TestQueryEngine.SET_NAME, null, or);
+		try{
+			while (it.hasNext()){
+				KeyRecord rec = it.next();
+				int age = rec.record.getInt("age");
+				Assert.assertTrue("green"==rec.record.getString("color") ||(age >= 28 && age <= 29));
+			}
+		} finally {
+			it.close();
+		}
+	}
+
+	@Test
+	public void selectWithBetweenAndOrQualifiers() throws IOException {
+		IndexTask task = this.client.createIndex(null, TestQueryEngine.NAMESPACE, TestQueryEngine.SET_NAME, "age_index", "age", IndexType.NUMERIC);
+		task.waitTillComplete(50);
+		queryEngine.refreshCluster();
+		Qualifier qual1 = new Qualifier("color", Qualifier.FilterOperation.EQ, Value.get("green"));
+		Qualifier qual2 = new Qualifier("age", Qualifier.FilterOperation.BETWEEN, Value.get(28), Value.get(29));
+		Qualifier qual3 = new Qualifier("age", Qualifier.FilterOperation.EQ, Value.get(25));
+		Qualifier qual4 = new Qualifier("name", Qualifier.FilterOperation.EQ, Value.get("name:696"));
+		Qualifier or = new Qualifier(Qualifier.FilterOperation.OR, qual3, qual2, qual4);
+		Qualifier or2 = new Qualifier(Qualifier.FilterOperation.OR, qual1, qual4);
+		Qualifier and = new Qualifier(Qualifier.FilterOperation.AND, or, or2);
+		
+		KeyRecordIterator it = queryEngine.select(TestQueryEngine.NAMESPACE, TestQueryEngine.SET_NAME, null, and);
+		try{
+			boolean has25=false;
+			while (it.hasNext()){
+				KeyRecord rec = it.next();
+				int age = rec.record.getInt("age");
+				if(age==25) has25=true;
+				else Assert.assertTrue("green".equals(rec.record.getString("color")) && (age == 25 || (age>=28 && age<=29)));
+			}
+			Assert.assertTrue(has25);
+		} finally {
+			it.close();
+		}
+	}
+
 	@Test
 	public void selectWithGeneration() throws IOException {
 		queryEngine.refreshCluster();

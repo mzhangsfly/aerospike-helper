@@ -31,15 +31,21 @@
 package com.aerospike.helper.query;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import com.aerospike.client.Value;
 import com.aerospike.client.command.ParticleType;
 import com.aerospike.client.query.Filter;
 import com.aerospike.client.query.IndexCollectionType;
+import com.aerospike.client.query.PredExp;
+
 /**
  * Generic Bin qualifier. It acts as a filter to exclude records that do not met this criteria.
  * The operations supported are:
@@ -62,31 +68,43 @@ public class Qualifier implements Map<String, Object>, Serializable{
 	private static final String FIELD = "field";
 	private static final String VALUE2 = "value2";
 	private static final String VALUE1 = "value1";
+	private static final String IGNORE_CASE = "ignoreCase";
+	private static final String QUALIFIERS = "qualifiers";
 	private static final String OPERATION = "operation";
-	private static final String COLLECTION_OPERATION = "collection-operation";
 	protected Map<String, Object> internalMap;
 	public enum FilterOperation {
-		EQ, GT, GTEQ, LT, LTEQ, NOTEQ, BETWEEN, START_WITH, ENDS_WITH, 
-		LIST_CONTAINS, MAP_KEYS_CONTAINS, MAP_VALUES_CONTAINS, 
-		LIST_BETWEEN, MAP_KEYS_BETWEEN, MAP_VALUES_BETWEEN
+		EQ, GT, GTEQ, LT, LTEQ, NOTEQ, BETWEEN, START_WITH, ENDS_WITH, CONTAINING,
+		LIST_CONTAINS, MAP_KEYS_CONTAINS, MAP_VALUES_CONTAINS,
+		LIST_BETWEEN, MAP_KEYS_BETWEEN, MAP_VALUES_BETWEEN, GEO_WITHIN,
+		OR, AND
 	}
 
 	public Qualifier() {
 		super();
 		internalMap = new HashMap<String, Object>();
 	}
+
+	public Qualifier(FilterOperation operation, Qualifier... qualifiers) {
+		this();
+		internalMap.put(QUALIFIERS, qualifiers);
+		internalMap.put(OPERATION, operation);
+	}
 	public Qualifier(String field, FilterOperation operation, Value value1) {
+		this(field, operation, Boolean.FALSE, value1);
+	}
+	
+	public Qualifier(String field, FilterOperation operation, Boolean ignoreCase, Value value1) {
 		this();
 		internalMap.put(FIELD, field);
 		internalMap.put(OPERATION, operation);
 		internalMap.put(VALUE1, value1);
+		internalMap.put(IGNORE_CASE, ignoreCase);
 	}
+
 	public Qualifier(String field, FilterOperation operation, Value value1, Value value2) {
-		this(field, operation, value1);
+		this(field, operation, Boolean.FALSE, value1);
 		internalMap.put(VALUE2, value2);
 	}
-
-
 
 	public FilterOperation getOperation(){
 		return (FilterOperation) internalMap.get(OPERATION);
@@ -94,39 +112,56 @@ public class Qualifier implements Map<String, Object>, Serializable{
 	public String getField(){
 		return (String) internalMap.get(FIELD);
 	}
-	public Value getValue1(){
+
+	public Qualifier[] getQualifiers() {
+		return (Qualifier[]) internalMap.get(QUALIFIERS);
+	}
+
+	public Value getValue1() {
 		return (Value) internalMap.get(VALUE1);
 	}
 	public Value getValue2(){
 		return (Value) internalMap.get(VALUE2);
 	}
 
-	@SuppressWarnings("deprecation")
 	public Filter asFilter(){
 		FilterOperation op = getOperation();
 		switch (op) {
-		case EQ:
-			if (getValue1().getType() == ParticleType.INTEGER)
-				return Filter.equal(getField(), getValue1().toLong());
-			else
-				return Filter.equal(getField(), getValue1().toString());
-		case BETWEEN:
-			return Filter.range(getField(), getValue1().toLong(), getValue2().toLong());
-		case LIST_CONTAINS:
-			return collectionContains(IndexCollectionType.LIST);
-		case MAP_KEYS_CONTAINS:
-			return collectionContains(IndexCollectionType.MAPKEYS);
-		case MAP_VALUES_CONTAINS:
-			return collectionContains(IndexCollectionType.MAPVALUES);
-		case LIST_BETWEEN:
-			return collectionRange(IndexCollectionType.LIST);
-		case MAP_KEYS_BETWEEN:
-			return collectionRange(IndexCollectionType.MAPKEYS);
-		case MAP_VALUES_BETWEEN:
-			return collectionRange(IndexCollectionType.MAPKEYS);
-		default:
-			return null;
+			case EQ:
+				if (getValue1().getType() == ParticleType.INTEGER)
+					return Filter.equal(getField(), getValue1().toLong());
+				else
+					return Filter.equal(getField(), getValue1().toString());
+			case GTEQ:
+			case BETWEEN:
+				return Filter.range(getField(), getValue1().toLong(), getValue2()==null?Long.MAX_VALUE:getValue2().toLong());
+			case GT:
+				return Filter.range(getField(), getValue1().toLong()+1, getValue2()==null?Long.MAX_VALUE:getValue2().toLong());
+			case LT:
+				return Filter.range(getField(), Long.MIN_VALUE, getValue1().toLong()-1);
+			case LTEQ:
+				return Filter.range(getField(),  Long.MIN_VALUE, getValue1().toLong()+1);
+			case LIST_CONTAINS:
+				return collectionContains(IndexCollectionType.LIST);
+			case MAP_KEYS_CONTAINS:
+				return collectionContains(IndexCollectionType.MAPKEYS);
+			case MAP_VALUES_CONTAINS:
+				return collectionContains(IndexCollectionType.MAPVALUES);
+			case LIST_BETWEEN:
+				return collectionRange(IndexCollectionType.LIST);
+			case MAP_KEYS_BETWEEN:
+				return collectionRange(IndexCollectionType.MAPKEYS);
+			case MAP_VALUES_BETWEEN:
+				return collectionRange(IndexCollectionType.MAPKEYS);
+			case GEO_WITHIN:
+				return geoWithinRadius(IndexCollectionType.DEFAULT);
+			default:
+				return null;
 		}
+	}
+	
+	private Filter geoWithinRadius(IndexCollectionType collectionType) {
+		return  Filter.geoContains(getField(), getValue1().toString());
 	}
 	
 	private Filter collectionContains(IndexCollectionType collectionType){
@@ -143,50 +178,156 @@ public class Qualifier implements Map<String, Object>, Serializable{
 	private Filter collectionRange(IndexCollectionType collectionType){
 		return Filter.range(getField(), collectionType, getValue1().toLong(), getValue2().toLong());
 	}
+	
+	public List<PredExp> toPredExp() throws PredExpException{
+		List<PredExp> rs = new ArrayList<PredExp>();
+		switch(getOperation()){
+		case AND:
+			Qualifier[] qs = (Qualifier[])get(QUALIFIERS);
+			for(Qualifier q : qs) rs.addAll(q.toPredExp());
+			rs.add(PredExp.and(qs.length));
+			break;
+		case OR:
+			qs = (Qualifier[])get(QUALIFIERS);
+			for(Qualifier q : qs) rs.addAll(q.toPredExp());
+			rs.add(PredExp.or(qs.length));
+			break;
+		case EQ:
+			Value val = getValue1();
+			int valType = val.getType();
+			switch (valType) {
+				case ParticleType.INTEGER: 
+					rs.add(PredExp.integerBin(getField()));
+					rs.add(PredExp.integerValue(val.toLong()));
+					rs.add(PredExp.integerEqual());
+					break;
+				case ParticleType.STRING:
+					rs.add(PredExp.stringBin(getField()));
+					rs.add(PredExp.stringValue(val.toString()));
+					rs.add(PredExp.stringEqual());
+					break;
+					default:
+						throw new PredExpException("PredExp Unsupported Particle Type: " + valType);
+			}
+			break;
+		case NOTEQ:
+			rs.addAll(Arrays.asList(valToPredExp(getValue1())));
+			rs.add(getValue1().getType()==ParticleType.INTEGER?PredExp.integerUnequal():PredExp.stringUnequal());
+			break;
+		case GT:
+			rs.addAll(Arrays.asList(valToPredExp(getValue1())));
+			rs.add(PredExp.integerGreater());
+			break;
+		case GTEQ:
+			rs.addAll(Arrays.asList(valToPredExp(getValue1())));
+			rs.add(PredExp.integerGreaterEq());
+			break;
+		case LT:
+			rs.addAll(Arrays.asList(valToPredExp(getValue1())));
+			rs.add(PredExp.integerLess());
+			break;
+		case LTEQ:
+			rs.addAll(Arrays.asList(valToPredExp(getValue1())));
+			rs.add(PredExp.integerLessEq());
+			break;
+		case BETWEEN:
+			return new Qualifier(FilterOperation.AND, new Qualifier(getField(), FilterOperation.GTEQ, getValue1()), new Qualifier(getField(), FilterOperation.LTEQ, getValue2())).toPredExp();
+		case LIST_BETWEEN:
+		case MAP_KEYS_BETWEEN:
+		case MAP_VALUES_BETWEEN:
+		case START_WITH:
+		case ENDS_WITH:
+		case CONTAINING:
+		case GEO_WITHIN:
+		case LIST_CONTAINS:
+		case MAP_KEYS_CONTAINS:
+		case MAP_VALUES_CONTAINS:
+		default:
+			throw new PredExpException("PredExp Unsupported Operation: " + getOperation());
+		}
+		return rs;
+	}
+	
+	private PredExp[] valToPredExp(Value val) throws PredExpException{
+		switch (val.getType()) {
+			case ParticleType.INTEGER:
+				return new PredExp[]{
+					PredExp.integerBin(getField()),
+					PredExp.integerValue(val.toLong())};
+			case ParticleType.STRING:
+				return new PredExp[]{
+						PredExp.stringBin(getField()),
+						PredExp.stringValue(val.toString())};
+			default:
+				throw new PredExpException("PredExp Unsupported Particle Type: " + val.getType());
+		}		
+	}
 
 	public String luaFilterString(){
 		String value1 = luaValueString(getValue1());
 		FilterOperation op = getOperation();
 		switch (op) {
-		case EQ:
-			return String.format("%s == %s", luaFieldString(getField()),  value1);
-		case LIST_CONTAINS:
-			return String.format("containsValue(%s, %s)", luaFieldString(getField()),  value1);
-		case MAP_KEYS_CONTAINS:
-			return String.format("containsKey(%s, %s)", luaFieldString(getField()),  value1);
-		case MAP_VALUES_CONTAINS:
-			return String.format("containsValue(%s, %s)", luaFieldString(getField()),  value1);
-		case NOTEQ:
-			return String.format("%s ~= %s", luaFieldString(getField()), value1);
-		case GT:
-			return String.format("%s > %s", luaFieldString(getField()), value1);
-		case GTEQ:
-			return String.format("%s >= %s", luaFieldString(getField()), value1);
-		case LT:
-			return String.format("%s < %s", luaFieldString(getField()), value1);
-		case LTEQ:
-			return String.format("%s <= %s", luaFieldString(getField()), value1);
-		case BETWEEN:
-			String value2 = luaValueString(getValue2());
-			String fieldString = luaFieldString(getField()); 
-			return String.format("%s >= %s and %s <= %s  ", fieldString, value1, luaFieldString(getField()), value2);
-		case LIST_BETWEEN:
-			value2 = luaValueString(getValue2());
-			return String.format("rangeValue(%s, %s, %s)", luaFieldString(getField()),  value1, value2);
-		case MAP_KEYS_BETWEEN:
-			value2 = luaValueString(getValue2());
-			return String.format("rangeKey(%s, %s, %s)", luaFieldString(getField()),  value1, value2);
-		case MAP_VALUES_BETWEEN:
-			value2 = luaValueString(getValue2());
-			return String.format("rangeValue(%s, %s, %s)", luaFieldString(getField()),  value1, value2);
-		case START_WITH:
-			return String.format("string.sub(%s,1,string.len(%s))==%s", luaFieldString(getField()), value1, value1);			
-		case ENDS_WITH:
-			return String.format("%s=='' or string.sub(%s,-string.len(%s))==%s", 
-					value1,
-					luaFieldString(getField()),
-					value1,
-					value1);			
+			case AND:
+				return new StringBuffer()
+						.append("(")
+						.append(Arrays.asList((Qualifier[])get(QUALIFIERS)).stream().map(Qualifier::luaFilterString).collect(Collectors.joining(" and ")))
+						.append(")").toString();
+			case OR:
+				return new StringBuffer()
+						.append("(")
+						.append(Arrays.asList((Qualifier[])get(QUALIFIERS)).stream().map(Qualifier::luaFilterString).collect(Collectors.joining(" or ")))
+						.append(")").toString();
+			case EQ:
+				return String.format("%s == %s", luaFieldString(getField()), value1);
+			case LIST_CONTAINS:
+				return String.format("containsValue(%s, %s)", luaFieldString(getField()), value1);
+			case MAP_KEYS_CONTAINS:
+				return String.format("containsKey(%s, %s)", luaFieldString(getField()), value1);
+			case MAP_VALUES_CONTAINS:
+				return String.format("containsValue(%s, %s)", luaFieldString(getField()), value1);
+			case NOTEQ:
+				return String.format("%s ~= %s", luaFieldString(getField()), value1);
+			case GT:
+				return String.format("%s > %s", luaFieldString(getField()), value1);
+			case GTEQ:
+				return String.format("%s >= %s", luaFieldString(getField()), value1);
+			case LT:
+				return String.format("%s < %s", luaFieldString(getField()), value1);
+			case LTEQ:
+				return String.format("%s <= %s", luaFieldString(getField()), value1);
+			case BETWEEN:
+				String value2 = luaValueString(getValue2());
+				String fieldString = luaFieldString(getField());
+				return String.format("%s >= %s and %s <= %s  ", fieldString, value1, luaFieldString(getField()), value2);
+			case LIST_BETWEEN:
+				value2 = luaValueString(getValue2());
+				return String.format("rangeValue(%s, %s, %s)", luaFieldString(getField()), value1, value2);
+			case MAP_KEYS_BETWEEN:
+				value2 = luaValueString(getValue2());
+				return String.format("rangeKey(%s, %s, %s)", luaFieldString(getField()), value1, value2);
+			case MAP_VALUES_BETWEEN:
+				value2 = luaValueString(getValue2());
+				return String.format("rangeValue(%s, %s, %s)", luaFieldString(getField()), value1, value2);
+			case START_WITH:
+				if((Boolean) internalMap.get(IGNORE_CASE))
+					return String.format("string.upper(string.sub(%s,1,string.len(%s)))==%s", luaFieldString(getField()), value1, value1.toUpperCase());
+				else
+					return String.format("string.sub(%s,1,string.len(%s))==%s", luaFieldString(getField()), value1, value1);
+			case ENDS_WITH:
+				return String.format("%s=='' or string.sub(%s,-string.len(%s))==%s",
+						value1,
+						luaFieldString(getField()),
+						value1,
+						value1);
+			case CONTAINING:
+				if((Boolean) internalMap.get(IGNORE_CASE))
+					return String.format("string.find(string.upper(%s), %s)", luaFieldString(getField()), value1.toUpperCase());
+				else
+					return String.format("string.find(%s, %s)", luaFieldString(getField()), value1);
+			case GEO_WITHIN:
+				return String.format("%s %d %s %s)", getField(), ParticleType.GEOJSON, value1, value1);
+			default:
+				break;
 		}
 		return "";
 	}
@@ -197,6 +338,7 @@ public class Qualifier implements Map<String, Object>, Serializable{
 
 	protected String luaValueString(Value value){
 		String res = null;
+		if(null == value) return res;
 		int type = value.getType();
 		switch (type) {
 		//		case ParticleType.LIST:

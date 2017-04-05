@@ -108,8 +108,8 @@ public class TimeSeries {
 		Key subKey = formSubrecordKey(timeStamp);
 		Record record = this.client.get(this.policy, subKey);
 		if (record != null){
-			List<Value> values = (List<Value>) record.getList(valueBin);
-			for (Value value : values){
+			List<Map<?,?>> values = (List<Map<?,?>>) record.getList(valueBin);
+			for (Map<?,?> value : values){
 				// do something clever here
 			}
 		}
