@@ -32,7 +32,7 @@ public class UsersTests extends HelperTests{
 		KeyRecordIterator it = queryEngine.select(TestQueryEngine.NAMESPACE, "users", null);
 		try {
 			while (it.hasNext()){
-				KeyRecord rec = it.next();
+				it.next();
 			}
 		} finally {
 			it.close();
@@ -44,7 +44,7 @@ public class UsersTests extends HelperTests{
 		try {
 			int counter = 0;
 			while (it.hasNext()){
-				KeyRecord rec = it.next();
+				it.next();
 				counter++;
 				if (counter >= 1000)
 					break;

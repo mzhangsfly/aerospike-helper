@@ -16,7 +16,10 @@ public class HelperTests {
 	protected int[] ages = new int[]{25,26,27,28,29};
 	protected String[] colours = new String[]{"blue","red","yellow","green","orange"};
 	protected String[] animals = new String[]{"cat","dog","mouse","snake","lion"};
-//	protected boolean useAuth;
+
+	protected String geoSet = "geo-set", geoBinName = "querygeobin";
+
+	private static final String keyPrefix = "querykey";
 
 	public HelperTests(){
 		clientPolicy = new ClientPolicy();
@@ -44,20 +47,31 @@ public class HelperTests {
 			if ( i == 5)
 				i = 0;
 		}
+		
+		//GEO Test setup
+		for (i = 0; i < TestQueryEngine.RECORD_COUNT; i++) {
+			double lng = -122 + (0.1 * i);
+			double lat = 37.5 + (0.1 * i);
+			key = new Key(TestQueryEngine.NAMESPACE, geoSet, keyPrefix + i);
+			Bin bin = Bin.asGeoJSON(geoBinName, buildGeoValue(lng, lat));
+			client.put(null, key, bin);
+		}
 	}
 
 	@After
 	public void tearDown() throws Exception {
+		client.truncate(null, TestQueryEngine.NAMESPACE, TestQueryEngine.SET_NAME, null);
+		client.truncate(null, TestQueryEngine.NAMESPACE, geoSet, null);
 		queryEngine.close();
 	}
 
-//	@Parameterized.Parameters
-//	   public static Collection connectionStates() {
-//	      return Arrays.asList(new Object[] {
-//	         false,
-//	         true
-//	      });
-//	   }
-
-
+	private static String buildGeoValue(double lg, double lat) {
+		StringBuilder ptsb = new StringBuilder();
+		ptsb.append("{ \"type\": \"Point\", \"coordinates\": [");
+		ptsb.append(String.valueOf(lg));
+		ptsb.append(", ");
+		ptsb.append(String.valueOf(lat));
+		ptsb.append("] }");
+		return ptsb.toString();
+	}
 }

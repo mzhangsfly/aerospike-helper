@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.StringJoiner;
 
 import com.aerospike.client.query.IndexType;
 
@@ -80,12 +81,30 @@ public class Index {
 	public String toString() {
 		return this.getName();
 	}
+	
+	public String toKeyString(){
+		return new StringJoiner(":").add(getNamespace()).add(getSet()).add(getBin()).toString();
+	}
 
 	public String getBin() {
 		if (values.containsKey("bin"))
 			return values.get("bin");
 		if (values.containsKey("bins"))
 			return values.get("bins");
+		return null;
+	}
+
+	public String getSet() {
+		if (values.containsKey("set"))
+			return values.get("set");
+		return null;
+	}
+	
+	public String getNamespace() {
+		if (values.containsKey("ns"))
+			return values.get("ns");
+		if (values.containsKey("namespace"))
+			return values.get("namespace");
 		return null;
 	}
 

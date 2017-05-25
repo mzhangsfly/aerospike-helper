@@ -2,7 +2,6 @@ package com.aerospike.helper.query;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -14,7 +13,6 @@ import com.aerospike.client.Bin;
 import com.aerospike.client.Key;
 import com.aerospike.client.Record;
 import com.aerospike.client.Value;
-import com.aerospike.client.policy.ClientPolicy;
 import com.aerospike.client.query.Statement;
 
 public class InserterTests extends HelperTests{

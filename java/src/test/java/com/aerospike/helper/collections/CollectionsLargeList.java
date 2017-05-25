@@ -27,6 +27,7 @@ import com.aerospike.client.cdt.ListOperation;
 import com.aerospike.client.policy.ClientPolicy;
 import com.aerospike.helper.query.TestQueryEngine;
 
+@SuppressWarnings("deprecation")
 public class CollectionsLargeList {
 
 	public static final String SET = "CollectionsLargeList";
@@ -281,6 +282,7 @@ public class CollectionsLargeList {
 		// Filter on range of timestamps
 		Calendar begin = new GregorianCalendar(2014, 6, 26);
 		Calendar end = new GregorianCalendar(2014, 6, 28);
+		@SuppressWarnings("unchecked")
 		List<Map<String,Object>> results = (List<Map<String,Object>>)list.range(Value.get(begin.getTimeInMillis()), Value.get(end.getTimeInMillis()));
 
 		Assert.assertEquals (results.size(), 2);
@@ -292,6 +294,7 @@ public class CollectionsLargeList {
 		log.info("Data matched.");
 
 		log.info("Run large list scan.");
+		@SuppressWarnings("unchecked")
 		List<Map<String,Object>> rows = (List<Map<String,Object>>)list.scan();
 		for (Map<String,Object> row : rows) {
 			for (@SuppressWarnings("unused") Map.Entry<String,Object> entry : row.entrySet()) {
@@ -378,6 +381,7 @@ public class CollectionsLargeList {
 		// Filter on range of timestamps
 		Calendar begin = new GregorianCalendar(2014, 6, 26);
 		Calendar end = new GregorianCalendar(2014, 6, 28);
+		@SuppressWarnings("unchecked")
 		List<Map<String,Object>> results = (List<Map<String,Object>>)list.range(Value.get(begin.getTimeInMillis()), Value.get(end.getTimeInMillis()));
 
 		Assert.assertEquals (results.size(), 2, 0.001);

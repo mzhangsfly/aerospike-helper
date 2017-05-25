@@ -71,10 +71,11 @@ public class Qualifier implements Map<String, Object>, Serializable {
 	private static final String VALUE1 = "value1";
 	private static final String QUALIFIERS = "qualifiers";
 	private static final String OPERATION = "operation";
+	private static final String AS_FILTER = "queryAsFilter";
 	protected Map<String, Object> internalMap;
 
 	public enum FilterOperation {
-		EQ, GT, GTEQ, LT, LTEQ, NOTEQ, BETWEEN, START_WITH, ENDS_WITH, CONTAINING,
+		EQ, GT, GTEQ, LT, LTEQ, NOTEQ, BETWEEN, START_WITH, ENDS_WITH, CONTAINING, IN,
 		LIST_CONTAINS, MAP_KEYS_CONTAINS, MAP_VALUES_CONTAINS,
 		LIST_BETWEEN, MAP_KEYS_BETWEEN, MAP_VALUES_BETWEEN, GEO_WITHIN,
 		OR, AND
@@ -114,6 +115,14 @@ public class Qualifier implements Map<String, Object>, Serializable {
 
 	public String getField() {
 		return (String) internalMap.get(FIELD);
+	}
+
+	public void asFilter(Boolean queryAsFilter) {
+		internalMap.put(AS_FILTER, queryAsFilter);
+	}
+
+	public Boolean queryAsFilter() {
+		return internalMap.containsKey(AS_FILTER) && (Boolean) internalMap.get(AS_FILTER);
 	}
 
 	public Qualifier[] getQualifiers() {
@@ -197,9 +206,18 @@ public class Qualifier implements Map<String, Object>, Serializable {
 			for(Qualifier q : qs) rs.addAll(q.toPredExp());
 			rs.add(PredExp.or(qs.length));
 			break;
-		case EQ:
+		case IN: // Conver IN to a collection of or as Aerospike has not support for IN query
 			Value val = getValue1();
 			int valType = val.getType();
+			if(valType != ParticleType.LIST) 
+				throw new IllegalArgumentException("FilterOperation.IN expects List argument with type: " + ParticleType.LIST + ", but got: " + valType);
+			List<?> inList = (List<?>) val.getObject();
+			for(Object value : inList) rs.addAll(new Qualifier(this.getField(), FilterOperation.EQ, Value.get(value)).toPredExp());
+			rs.add(PredExp.or(inList.size()));		
+			break;
+		case EQ:
+			val = getValue1();
+			valType = val.getType();
 			switch (valType) {
 				case ParticleType.INTEGER: 
 					rs.add(PredExp.integerBin(getField()));
@@ -237,16 +255,16 @@ public class Qualifier implements Map<String, Object>, Serializable {
 			break;
 		case BETWEEN:
 			return new Qualifier(FilterOperation.AND, new Qualifier(getField(), FilterOperation.GTEQ, getValue1()), new Qualifier(getField(), FilterOperation.LTEQ, getValue2())).toPredExp();
+		case GEO_WITHIN:
+		case LIST_CONTAINS:
+		case MAP_KEYS_CONTAINS:
+		case MAP_VALUES_CONTAINS:
 		case LIST_BETWEEN:
 		case MAP_KEYS_BETWEEN:
 		case MAP_VALUES_BETWEEN:
 		case START_WITH:
 		case ENDS_WITH:
 		case CONTAINING:
-		case GEO_WITHIN:
-		case LIST_CONTAINS:
-		case MAP_KEYS_CONTAINS:
-		case MAP_VALUES_CONTAINS:
 		default:
 			throw new PredExpException("PredExp Unsupported Operation: " + getOperation());
 		}
@@ -263,6 +281,10 @@ public class Qualifier implements Map<String, Object>, Serializable {
 				return new PredExp[]{
 						PredExp.stringBin(getField()),
 						PredExp.stringValue(val.toString())};
+			case ParticleType.GEOJSON:
+				return new PredExp[]{
+						PredExp.geoJSONBin(getField()),
+						PredExp.geoJSONValue(val.toString())};
 			default:
 				throw new PredExpException("PredExp Unsupported Particle Type: " + val.getType());
 		}		

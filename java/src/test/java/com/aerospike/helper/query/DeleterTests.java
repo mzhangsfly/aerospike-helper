@@ -1,7 +1,6 @@
 package com.aerospike.helper.query;
 
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.Map;
 
 import org.junit.Assert;
@@ -49,26 +48,23 @@ public class DeleterTests extends HelperTests{
 		}
 	}
 	@Test
-	public void deleteStartsWith() {
+	public void deleteEndsWith() {
 		Qualifier qual1 = new Qualifier("color", Qualifier.FilterOperation.ENDS_WITH, Value.get("e"));
 		Statement stmt = new Statement();
 		stmt.setNamespace(TestQueryEngine.NAMESPACE);
 		stmt.setSetName(TestQueryEngine.SET_NAME);
 		Map<String, Long> counts = queryEngine.delete(stmt, qual1);
-		//System.out.println(counts);
-		//Assert.assertEquals((Long)400L, (Long)counts.get("read"));
-		//Assert.assertEquals((Long)400L, (Long)counts.get("write"));
-		
+		Assert.assertEquals((Long)400L, (Long)counts.get("read"));
+		Assert.assertEquals((Long)400L, (Long)counts.get("write"));
 	}
 	@Test
-	public void deleteEndsWith() throws IOException {
+	public void deleteStartsWith() throws IOException {
 		Qualifier qual1 = new Qualifier("color", Qualifier.FilterOperation.EQ, Value.get("blue"));
 		Qualifier qual2 = new Qualifier("name", Qualifier.FilterOperation.START_WITH, Value.get("na"));
 		Statement stmt = new Statement();
 		stmt.setNamespace(TestQueryEngine.NAMESPACE);
 		stmt.setSetName(TestQueryEngine.SET_NAME);
 		Map<String, Long> counts = queryEngine.delete(stmt, qual1, qual2);
-		//System.out.println(counts);
 		Assert.assertEquals((Long)200L, (Long)counts.get("read"));
 		Assert.assertEquals((Long)200L, (Long)counts.get("write"));
 	}

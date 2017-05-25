@@ -18,6 +18,7 @@ package com.aerospike.helper.query;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -252,10 +253,18 @@ public class QueryEngine implements Closeable {
 		/*
 		 *  query with filters
 		 */
-
 		for (int i = 0; i < qualifiers.length; i++) {
 			Qualifier qualifier = qualifiers[i];
-			if (isIndexedBin(qualifier)) {
+			if(qualifier.getOperation()==Qualifier.FilterOperation.AND){
+				for(Qualifier q: qualifier.getQualifiers()){
+					Filter filter = q.asFilter();
+					if (filter != null) {
+						stmt.setFilters(filter);
+						q.asFilter(true);;
+						break;
+					}
+				}
+			}else if (isIndexedBin(stmt, qualifier)) {
 				Filter filter = qualifier.asFilter();
 				if (filter != null) {
 					stmt.setFilters(filter);
@@ -267,7 +276,7 @@ public class QueryEngine implements Closeable {
 		
 		try {
 			PredExp[] predexps;
-			predexps = (PredExp[]) buildPredExp(qualifiers).toArray(new PredExp[0]);
+			predexps = buildPredExp(qualifiers).toArray(new PredExp[0]);
 			if(predexps.length > 0){
 				stmt.setPredExp(predexps);
 				RecordSet rs = client.query(null, stmt);
@@ -301,9 +310,9 @@ public class QueryEngine implements Closeable {
 
 	}
 
-	protected boolean isIndexedBin(Qualifier qualifier) {
+	protected boolean isIndexedBin(Statement stmt, Qualifier qualifier) {
 		if(null == qualifier.getField()) return false;
-		Index index = this.indexCache.get(qualifier.getField());
+		Index index = this.indexCache.get(String.join(":", Arrays.asList(stmt.getNamespace(), stmt.getSetName(), qualifier.getField())));
 		if (index == null)
 			return false;
 
@@ -493,7 +502,7 @@ public class QueryEngine implements Closeable {
 		List<PredExp> pes = new ArrayList<PredExp>();
 		int qCount = 0;
 		for(Qualifier q : qualifiers){
-			if(null != q) {
+			if(null != q && !q.queryAsFilter()) {
 				List<PredExp> tpes = q.toPredExp();
 				if(tpes.size()>0){
 					pes.addAll(tpes);
@@ -627,7 +636,7 @@ public class QueryEngine implements Closeable {
 	}
 
 	/**
-	 * refreshes the Index cacge from the Cluster
+	 * refreshes the Index cache from the Cluster
 	 */
 	public synchronized void refreshIndexes() {
 		/*
@@ -645,8 +654,7 @@ public class QueryEngine implements Closeable {
 						String[] indexList = indexString.split(";");
 						for (String oneIndexString : indexList) {
 							Index index = new Index(oneIndexString);
-							String indexBin = index.getBin();
-							this.indexCache.put(indexBin, index);
+							this.indexCache.put(index.toKeyString(), index);
 						}
 					}
 					break;
@@ -660,11 +668,11 @@ public class QueryEngine implements Closeable {
 	/**
 	 * Gets a specific index from the index cache by Bin name
 	 *
-	 * @param binName The name of the indexed Bin
+	 * @param key The key = namespace:set:bin built from the indexed Bin
 	 * @return An Index model object
 	 */
-	public synchronized Index getIndex(String binName) {
-		return this.indexCache.get(binName);
+	public synchronized Index getIndex(String key) {
+		return this.indexCache.get(key);
 	}
 
 	/**
