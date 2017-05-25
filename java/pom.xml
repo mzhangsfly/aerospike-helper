@@ -12,6 +12,10 @@
 	<description>Helper classes including predicates for Spring Data and Spark</description>
 	<url>http://github.com/aerospike/aerospike-helper</url>
 
+  <properties>
+  	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
   <licenses>
     <license>
       <name>The Apache License, Version 2.0</name>
@@ -114,6 +118,7 @@
 	</dependencies>
 	<build>
 		<sourceDirectory>${project.basedir}/src/main/java</sourceDirectory> 
+		
 		<plugins>
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -123,6 +128,7 @@
 					<target>1.8</target>
 				</configuration>
 			</plugin>
+
 			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>
 				<configuration>
@@ -141,25 +147,6 @@
 						</goals>
 					</execution>
 				</executions>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-javadoc-plugin</artifactId>
-				<version>2.9.1</version>
-				<configuration>
-					<reportOutputDirectory>${project.basedir}</reportOutputDirectory>
-					<outputDirectory>${project.basedir}</outputDirectory>
-					<destDir>javadoc</destDir>
-					<doctitle>Aerospike Helper</doctitle>
-					<show>public</show>
-					<splitindex>true</splitindex>
-					<bottom>Copyright &#169; 2012&#x2013;{currentYear} Aerospike, Inc.
-						All rights reserved.</bottom>
-					<sourcepath>${project.basedir}/src/main/java</sourcepath>
-					<sourceFileIncludes>
-						<include>com/aerospike/helper/**/*</include>
-					</sourceFileIncludes>
-				</configuration>
 			</plugin>
 
 	        <plugin>
@@ -189,6 +176,7 @@
 	            </execution>
 	          </executions>
 	        </plugin>
+
 			<plugin>
 	          <groupId>org.apache.maven.plugins</groupId>
 	          <artifactId>maven-gpg-plugin</artifactId>
@@ -204,6 +192,7 @@
 	          </executions>
 	        </plugin>
 		</plugins>
+
 		<resources>
 			<resource>
 				<directory>${project.basedir}/src/main/java</directory>
