@@ -37,6 +37,7 @@ import com.aerospike.client.Record;
 import com.aerospike.client.Value;
 import com.aerospike.client.cluster.Node;
 import com.aerospike.client.policy.InfoPolicy;
+import com.aerospike.client.policy.QueryPolicy;
 import com.aerospike.client.policy.RecordExistsAction;
 import com.aerospike.client.policy.WritePolicy;
 import com.aerospike.client.query.Filter;
@@ -73,6 +74,7 @@ public class QueryEngine implements Closeable {
 	public WritePolicy updatePolicy;
 	public WritePolicy insertPolicy;
 	public InfoPolicy infoPolicy;
+	public QueryPolicy queryPolicy;
 
 	public enum Meta {
 		KEY,
@@ -122,6 +124,7 @@ public class QueryEngine implements Closeable {
 		this.updatePolicy.recordExistsAction = RecordExistsAction.UPDATE_ONLY;
 		this.insertPolicy = new WritePolicy(this.client.writePolicyDefault);
 		this.insertPolicy.recordExistsAction = RecordExistsAction.CREATE_ONLY;
+		this.queryPolicy = client.queryPolicyDefault;
 		refreshCluster();
 		registerUDF();
 	}
@@ -173,10 +176,10 @@ public class QueryEngine implements Closeable {
 			String sortFuncStr = buildSortFunction(sortMap);
 			originArgs.put("sortFuncStr", sortFuncStr);
 			stmt.setAggregateFunction(this.getClass().getClassLoader(), AS_UTILITY_PATH, QUERY_MODULE, "select_records", Value.get(originArgs));
-			ResultSet resultSet = this.client.queryAggregate(null, stmt);
+			ResultSet resultSet = this.client.queryAggregate(queryPolicy, stmt);
 			results = new KeyRecordIterator(stmt.getNamespace(), resultSet);
 		} else {
-			RecordSet recordSet = this.client.query(null, stmt);
+			RecordSet recordSet = this.client.query(queryPolicy, stmt);
 			results = new KeyRecordIterator(stmt.getNamespace(), recordSet);
 		}
 		return results;
@@ -227,9 +230,9 @@ public class QueryEngine implements Closeable {
 		if (qualifiers == null || qualifiers.length == 0) {
 			RecordSet recordSet = null;
 			if (node != null)
-				recordSet = this.client.queryNode(null, stmt, node);
+				recordSet = this.client.queryNode(queryPolicy, stmt, node);
 			else
-				recordSet = this.client.query(null, stmt);
+				recordSet = this.client.query(queryPolicy, stmt);
 			return new KeyRecordIterator(stmt.getNamespace(), recordSet);
 		}
 		/*
@@ -279,7 +282,7 @@ public class QueryEngine implements Closeable {
 			predexps = buildPredExp(qualifiers).toArray(new PredExp[0]);
 			if(predexps.length > 0){
 				stmt.setPredExp(predexps);
-				RecordSet rs = client.query(null, stmt);
+				RecordSet rs = client.query(queryPolicy, stmt);
 				return new KeyRecordIterator(stmt.getNamespace(), rs);
 			}else{
 				return queryByLua(stmt, metaOnly, node, qualifiers);
@@ -302,9 +305,9 @@ public class QueryEngine implements Closeable {
 		else
 			stmt.setAggregateFunction(this.getClass().getClassLoader(), AS_UTILITY_PATH, QUERY_MODULE, "select_records", Value.get(originArgs));
 		if (node != null) {
-			resultSet = this.client.queryAggregateNode(null, stmt, node);
+			resultSet = this.client.queryAggregateNode(queryPolicy, stmt, node);
 		} else {
-			resultSet = this.client.queryAggregate(null, stmt);
+			resultSet = this.client.queryAggregate(queryPolicy, stmt);
 		}
 		return new KeyRecordIterator(stmt.getNamespace(), resultSet);
 
@@ -498,7 +501,7 @@ public class QueryEngine implements Closeable {
 		return null;
 	}
 	
-	private List<PredExp> buildPredExp(Qualifier[] qualifiers) throws PredExpException{
+	protected List<PredExp> buildPredExp(Qualifier[] qualifiers) throws PredExpException{
 		List<PredExp> pes = new ArrayList<PredExp>();
 		int qCount = 0;
 		for(Qualifier q : qualifiers){
@@ -516,7 +519,7 @@ public class QueryEngine implements Closeable {
 		return pes;
 	}
 
-	private String buildFilterFunction(Qualifier[] qualifiers) {
+	protected String buildFilterFunction(Qualifier[] qualifiers) {
 		int count = 0;
 		StringBuilder sb = new StringBuilder("if ");
 		for (int i = 0; i < qualifiers.length; i++) {
@@ -730,6 +733,7 @@ public class QueryEngine implements Closeable {
 		updatePolicy = null;
 		insertPolicy = null;
 		infoPolicy = null;
+		queryPolicy = null;
 		moduleCache.clear();
 		moduleCache = null;
 	}
