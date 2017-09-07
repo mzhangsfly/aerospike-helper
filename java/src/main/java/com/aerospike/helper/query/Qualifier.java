@@ -256,13 +256,18 @@ public class Qualifier implements Map<String, Object>, Serializable {
 		case BETWEEN:
 			return new Qualifier(FilterOperation.AND, new Qualifier(getField(), FilterOperation.GTEQ, getValue1()), new Qualifier(getField(), FilterOperation.LTEQ, getValue2())).toPredExp();
 		case GEO_WITHIN:
+
+			rs.addAll(Arrays.asList(valToPredExp(getValue1())));
+			rs.add(PredExp.geoJSONWithin());
+			
+			break;
 		case LIST_CONTAINS:
 		case MAP_KEYS_CONTAINS:
 		case MAP_VALUES_CONTAINS:
 		case LIST_BETWEEN:
 		case MAP_KEYS_BETWEEN:
 		case MAP_VALUES_BETWEEN:
-		case START_WITH:
+		case START_WITH:			
 		case ENDS_WITH:
 		case CONTAINING:
 		default:

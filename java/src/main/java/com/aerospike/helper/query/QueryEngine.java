@@ -258,9 +258,11 @@ public class QueryEngine implements Closeable {
 		 */
 		for (int i = 0; i < qualifiers.length; i++) {
 			Qualifier qualifier = qualifiers[i];
+		
+			if(qualifier == null) continue;
 			if(qualifier.getOperation()==Qualifier.FilterOperation.AND){
 				for(Qualifier q: qualifier.getQualifiers()){
-					Filter filter = q.asFilter();
+					Filter filter = q == null ? null : q.asFilter();
 					if (filter != null) {
 						stmt.setFilters(filter);
 						q.asFilter(true);;
@@ -282,7 +284,12 @@ public class QueryEngine implements Closeable {
 			predexps = buildPredExp(qualifiers).toArray(new PredExp[0]);
 			if(predexps.length > 0){
 				stmt.setPredExp(predexps);
-				RecordSet rs = client.query(queryPolicy, stmt);
+				RecordSet rs;
+				if(null == node){
+					rs = client.query(queryPolicy, stmt);
+				}else{
+					rs = client.queryNode(queryPolicy, stmt, node);					
+				}
 				return new KeyRecordIterator(stmt.getNamespace(), rs);
 			}else{
 				return queryByLua(stmt, metaOnly, node, qualifiers);
