@@ -190,19 +190,34 @@ public class QueryEngine implements Closeable {
 	 *
 	 * @param namespace  Namespace to storing the data
 	 * @param set		Set storing the data
-	 * @param filter	 Aerospike Filter to be used
+	 * @param filter	Aerospike Filter to be used
 	 * @param qualifiers Zero or more Qualifiers for the update query
 	 * @return A KeyRecordIterator to iterate over the results
 	 */
 	public KeyRecordIterator select(String namespace, String set, Filter filter, Qualifier... qualifiers) {
+		return select(namespace, set, filter, new ArrayList<String>(), qualifiers);
+	}
+	
+	/**
+	 * Select records filtered by a Filter and Qualifiers
+	 *
+	 * @param namespace  Namespace to storing the data
+	 * @param set		Set storing the data
+	 * @param filter	 Aerospike Filter to be used
+	 * @param bins		bin name list to be enclosed
+	 * @param qualifiers Zero or more Qualifiers for the update query
+	 * @return A KeyRecordIterator to iterate over the results
+	 */
+	public KeyRecordIterator select(String namespace, String set, Filter filter, List<String> bins, Qualifier... qualifiers) {
 		Statement stmt = new Statement();
+		if(bins != null && bins.size()>0) stmt.setBinNames(bins.toArray(new String[bins.size()]));
 		stmt.setNamespace(namespace);
 		stmt.setSetName(set);
 		if (filter != null)
 			stmt.setFilters(filter);
 		return select(stmt, qualifiers);
 	}
-
+	
 	/**
 	 * Select records filtered by Qualifiers
 	 *

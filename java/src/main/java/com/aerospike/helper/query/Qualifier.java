@@ -256,10 +256,8 @@ public class Qualifier implements Map<String, Object>, Serializable {
 		case BETWEEN:
 			return new Qualifier(FilterOperation.AND, new Qualifier(getField(), FilterOperation.GTEQ, getValue1()), new Qualifier(getField(), FilterOperation.LTEQ, getValue2())).toPredExp();
 		case GEO_WITHIN:
-
 			rs.addAll(Arrays.asList(valToPredExp(getValue1())));
 			rs.add(PredExp.geoJSONWithin());
-			
 			break;
 		case LIST_CONTAINS:
 		case MAP_KEYS_CONTAINS:
@@ -284,12 +282,12 @@ public class Qualifier implements Map<String, Object>, Serializable {
 					PredExp.integerValue(val.toLong())};
 			case ParticleType.STRING:
 				return new PredExp[]{
-						PredExp.stringBin(getField()),
-						PredExp.stringValue(val.toString())};
+					PredExp.stringBin(getField()),
+					PredExp.stringValue(val.toString())};
 			case ParticleType.GEOJSON:
 				return new PredExp[]{
-						PredExp.geoJSONBin(getField()),
-						PredExp.geoJSONValue(val.toString())};
+					PredExp.geoJSONBin(getField()),
+					PredExp.geoJSONValue(val.toString())};
 			default:
 				throw new PredExpException("PredExp Unsupported Particle Type: " + val.getType());
 		}		
